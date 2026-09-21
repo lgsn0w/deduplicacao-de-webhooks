@@ -1,0 +1,5 @@
+transport,strategy,fault,runs,duplicates_mean,duplicates_std,duplicates_min,duplicates_max,lost_mean,lost_std,lost_min,lost_max
+fresh,idem-key,concurrent,5,8574.80,90.51,8482,8687,0.00,0.00,0,0
+fresh,dedup,concurrent,5,0.00,0.00,0,0,0.00,0.00,0,0
+pooled,idem-key,concurrent,5,8918.80,9.26,8909,8932,0.00,0.00,0,0
+pooled,dedup,concurrent,5,0.00,0.00,0,0,0.00,0.00,0,0

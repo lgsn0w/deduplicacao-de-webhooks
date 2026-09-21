@@ -1,0 +1,5 @@
+.gocache/
+.tmp-go/
+results/raw/
+results/*.csv
+*.exe

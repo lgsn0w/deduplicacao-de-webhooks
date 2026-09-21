@@ -1,0 +1,15 @@
+started_at_utc=2026-07-21T10:48:25Z
+git_commit=21ecab0828ccab0fda077786073466b6e895d9db
+go_version=go version go1.26.4 linux/amd64
+docker_version=29.6.1
+compose_command=docker compose
+compose_version=5.1.4
+host=Linux void 6.18.38_1 #1 SMP PREEMPT_DYNAMIC Sun Jul  5 00:52:03 UTC 2026 x86_64 GNU/Linux
+events_per_run=1000
+concurrency=10
+transports=fresh,pooled
+strategies=idem-key,dedup
+seeds=1,2,3,4,5
+finished_at_utc=2026-07-21T10:52:48Z
+fba8304839c51c24c4635c2fc2101bfbc16ffd7bc481d960c46d0e95df5786f0  results/exp-a-sensitivity.csv
+6c22e7919a40474f0214dad7e9157dd460456e80c6cdab8ed6af98bdcbea77c5  results/exp-a-sensitivity-summary.csv

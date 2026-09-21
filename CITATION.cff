@@ -1,0 +1,19 @@
+cff-version: 1.2.0
+message: "Ao utilizar este artefato, cite o artigo indicado em preferred-citation."
+type: software
+title: "Deduplicação de Webhooks: artefato experimental"
+authors:
+  - family-names: "Moura"
+    given-names: "Lucas Gabriel das Neves"
+repository-code: "https://github.com/lgsn0w/deduplicacao-de-webhooks"
+license: MIT
+preferred-citation:
+  type: conference-paper
+  title: "Deduplicação de Webhooks de Pagamento sob Concorrência e Falhas: um Estudo Experimental de Atomicidade"
+  authors:
+    - family-names: "Moura"
+      given-names: "Lucas Gabriel das Neves"
+  year: 2026
+  conference:
+    name: "ERI-ES 2026"
+  notes: "Artigo aceito; metadados de publicação nos anais pendentes."

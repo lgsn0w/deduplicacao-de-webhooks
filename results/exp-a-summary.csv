@@ -1,0 +1,10 @@
+strategy,fault,runs,duplicates_mean,duplicates_std,duplicates_min,duplicates_max,lost_mean,lost_std,lost_min,lost_max
+none,timeout,5,1000.00,0.00,1000,1000,0.00,0.00,0,0
+none,concurrent,5,9000.00,0.00,9000,9000,0.00,0.00,0,0
+none,crash,5,0.00,0.00,0,0,0.00,0.00,0,0
+idem-key,timeout,5,0.00,0.00,0,0,0.00,0.00,0,0
+idem-key,concurrent,5,8963.60,7.50,8953,8973,0.00,0.00,0,0
+idem-key,crash,5,0.00,0.00,0,0,100.00,0.00,100,100
+dedup,timeout,5,0.00,0.00,0,0,0.00,0.00,0,0
+dedup,concurrent,5,0.00,0.00,0,0,0.00,0.00,0,0
+dedup,crash,5,0.00,0.00,0,0,100.00,0.00,100,100

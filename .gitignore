@@ -1,0 +1,13 @@
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*.swo
+.env
+.env.*
+.gocache/
+.tmp-go/
+results/raw/
+results/reproduced-*
+results/smoke-*
+*.exe
