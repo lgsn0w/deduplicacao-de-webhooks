@@ -88,6 +88,7 @@ func (l *Ledger) Reconcile() ReconciliationResult {
 	result.Total = len(keys)
 
 	for id := range keys {
+		// exp e obs contam os efeitos esperados e observados para este identificador de evento.
 		exp := l.expected[id]
 		obs := l.observed[id]
 

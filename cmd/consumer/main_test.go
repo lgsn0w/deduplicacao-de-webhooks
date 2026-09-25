@@ -61,17 +61,19 @@ func TestCrashAfterDBWriteTriggersExit(t *testing.T) {
 }
 
 func TestNoCrashAfterUsesProcessHook(t *testing.T) {
-	// Process-level hook targets CrashAfterPublish; request has no crash_after.
-	// The process hook should fire at CrashAfterPublish (after store + executions).
+	// Sem crash_after na requisição, vale a queda configurada para o processo.
+	// A saída deve ocorrer após o registro do evento, antes de registrar o efeito.
 	processExitCalled := false
+	var exitCode int
 	processExit := func(code int) {
 		processExitCalled = true
+		exitCode = code
 		panic("process-crash")
 	}
 
 	store := &fakeStore{duplicate: false}
-	processHook := fault.NewHookWithExit(fault.CrashAfterPublish, processExit)
-	// exitFn won't be used because crash_after is empty.
+	processHook := fault.NewHookWithExit(fault.CrashAfterDBWrite, processExit)
+	// A interrupção planejada ocorre antes de acessar a dependência executions, que é nil.
 	handler := webhookHandler(store, nil, processHook, nil, "none")
 
 	body := `{"event_id":"e1","payment_id":"p1","status":"approved"}`
@@ -80,15 +82,14 @@ func TestNoCrashAfterUsesProcessHook(t *testing.T) {
 
 	defer func() {
 		r := recover()
-		// Expect either the process hook panic or a nil-pointer on executions.Record.
-		// Since executions is nil and !duplicate, executions.Record will panic first
-		// (nil pointer) before the process hook at CrashAfterPublish.
-		// This confirms the process-level hook path is taken (not per-request).
-		if processExitCalled {
-			t.Fatal("process hook should not fire before executions.Record")
+		if r != "process-crash" {
+			t.Fatalf("expected process-crash panic, got: %v", r)
 		}
-		if r == nil {
-			t.Fatal("expected panic from nil executions")
+		if !processExitCalled {
+			t.Fatal("process exit was not called")
+		}
+		if exitCode != 1 {
+			t.Fatalf("exit code: got %d, want 1", exitCode)
 		}
 		if !store.recorded {
 			t.Fatal("store.Record should have been called")

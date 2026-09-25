@@ -3,10 +3,13 @@ package eventstore
 import (
 	"context"
 	"os"
+	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"example.com/payment-reliability-harness/internal/domain"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -203,14 +206,45 @@ func TestConcurrentDedupTable(t *testing.T) {
 	}
 }
 
-// TestConcurrentIdempotencyKey proves the TOCTOU race: more than 1 of N
-// concurrent writers gets (false, nil) — the SELECT-before-INSERT bug.
+// insertBarrier pausa as inserções antes de enviá-las ao banco, apenas neste teste.
+// Assim, todas as consultas podem observar a ausência do evento antes da primeira escrita.
+type insertBarrier struct {
+	ready   chan struct{}
+	release chan struct{}
+}
+
+func (b *insertBarrier) TraceQueryStart(ctx context.Context, _ *pgx.Conn, data pgx.TraceQueryStartData) context.Context {
+	if strings.HasPrefix(strings.TrimSpace(data.SQL), "INSERT INTO event_log") {
+		b.ready <- struct{}{}
+		select {
+		case <-b.release:
+		case <-ctx.Done():
+		}
+	}
+	return ctx
+}
+
+func (b *insertBarrier) TraceQueryEnd(context.Context, *pgx.Conn, pgx.TraceQueryEndData) {}
+
+// O teste controla uma ordem possível de execução; não estima a frequência de duplicações.
 func TestConcurrentIdempotencyKey(t *testing.T) {
 	pool := testPool(t)
-	store := NewIdempotencyKeyStore(pool)
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
 
 	const n = 10
+	barrier := &insertBarrier{ready: make(chan struct{}, n), release: make(chan struct{})}
+	config := pool.Config()
+	// Cada inserção suspensa ocupa uma conexão; todas precisam alcançar a barreira.
+	config.MaxConns = n
+	config.ConnConfig.Tracer = barrier
+	controlledPool, err := pgxpool.NewWithConfig(ctx, config)
+	if err != nil {
+		t.Fatalf("create controlled pool: %v", err)
+	}
+	defer controlledPool.Close()
+	store := NewIdempotencyKeyStore(controlledPool)
+
 	evt := testEvent("concurrent-idemkey")
 	var wg sync.WaitGroup
 	results := make(chan bool, n)
@@ -227,8 +261,22 @@ func TestConcurrentIdempotencyKey(t *testing.T) {
 			results <- dup
 		}()
 	}
+	arrived := 0
+waitForInserts:
+	for arrived < n {
+		select {
+		case <-barrier.ready:
+			arrived++
+		case <-ctx.Done():
+			break waitForInserts
+		}
+	}
+	close(barrier.release)
 	wg.Wait()
 	close(results)
+	if arrived != n {
+		t.Fatalf("only %d/%d inserts reached the barrier: %v", arrived, n, ctx.Err())
+	}
 
 	newCount := 0
 	for dup := range results {
@@ -236,9 +284,14 @@ func TestConcurrentIdempotencyKey(t *testing.T) {
 			newCount++
 		}
 	}
-
-	if newCount <= 1 {
-		t.Fatalf("IdempotencyKeyStore: only %d goroutines saw new — TOCTOU race not triggered (want >1)", newCount)
+	if newCount != n {
+		t.Fatalf("IdempotencyKeyStore: %d calls authorized processing, want %d", newCount, n)
 	}
-	t.Logf("IdempotencyKeyStore: %d/%d goroutines saw new (TOCTOU race confirmed)", newCount, n)
+	var markers int
+	if err := pool.QueryRow(ctx, "SELECT COUNT(*) FROM event_log WHERE event_id = $1", evt.ID).Scan(&markers); err != nil {
+		t.Fatalf("count stored markers: %v", err)
+	}
+	if markers != 1 {
+		t.Fatalf("stored markers: got %d, want 1", markers)
+	}
 }

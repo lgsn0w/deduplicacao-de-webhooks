@@ -52,7 +52,7 @@ run-exp-a-min:
 	$(MAKE) docker-cell-a STRATEGY=dedup FAULT=concurrent SEED=1 OUTPUT=$(SMOKE_OUTPUT)
 
 # Full Exp A: 9 cells × 5 seeds = 45 runs.
-# timeout/concurrent use 1000 events; crash uses 100 (see EXPERIMENT.md).
+# timeout/concurrent use 1000 events; crash uses 100 (see README.md).
 # 5s cooldown between cells per protocol.
 run-exp-a-full:
 	$(RM) $(OUTPUT)

@@ -22,19 +22,42 @@ ambiente de teste.
 
 ## Estratégias
 
-| Flag | Implementação |
-|---|---|
-| `none` | aceita toda entrega, sem deduplicação |
-| `idem-key` | `SELECT` seguido de `INSERT`, sem atomicidade |
-| `dedup` | `INSERT ... ON CONFLICT DO NOTHING` com unicidade |
+| Estratégia no artigo | Flag | Implementação |
+|---|---|---|
+| Sem controle | `none` | aceita toda entrega, sem deduplicação |
+| Reivindicação não atômica | `idem-key` | consulta e tenta inserir; decide pela consulta anterior |
+| Reivindicação atômica | `dedup` | insere com unicidade; prossegue apenas se inseriu |
 
 Os nomes das flags são identificadores históricos. A variável experimental é a
 atomicidade da reivindicação.
+Ambas as estratégias com marcador usam `INSERT ... ON CONFLICT DO NOTHING`;
+somente a reivindicação atômica usa o resultado da inserção para decidir se processa.
 
-## Verificação rápida
+## Testes
+
+1. Testes rápidos, sem banco:
+
+   ```bash
+   go test -short -count=1 ./...
+   ```
+
+2. Suíte completa em Docker, com PostgreSQL exclusivo, sem portas expostas ou montagem de pastas locais:
+
+   ```bash
+   docker compose -p eri-tests -f compose.test.yml up --build --abort-on-container-exit --exit-code-from tests
+   ```
+
+3. Remover o ambiente de testes, inclusive se algum teste falhar:
+
+   ```bash
+   docker compose -p eri-tests -f compose.test.yml down --volumes
+   ```
+
+Os testes não alteram os CSVs publicados nem usam o banco do experimento.
+
+## Verificação dos resultados e execução mínima
 
 ```bash
-go test -short ./...
 make verify-results
 make run-exp-a-min
 make stop
@@ -56,9 +79,17 @@ As novas execuções são gravadas como `results/reproduced-*`. Células sequenc
 e de crash são determinísticas. A corrida concorrente depende do escalonamento.
 Compare a direção do resultado e a distribuição; os totais exatos podem variar.
 
-O protocolo completo está em [EXPERIMENT.md](EXPERIMENT.md). As limitações estão
-em [THREATS.md](THREATS.md). Os hashes dos resultados publicados estão em
-`RESULTS.sha256`.
+A matriz principal cruza três estratégias, três cenários e cinco sementes (1 a 5):
+45 execuções. Reentrega e concorrência usam 1.000 eventos; queda usa 100.
+São dez entregas por evento na concorrência. A sensibilidade cruza `fresh` (sem
+reúso de conexões) e `pooled` (com reúso), `idem-key` e `dedup`, com cinco sementes
+e 1.000 eventos por execução: mais 20 execuções.
+
+`timeout` designa reentrega sequencial após sucesso, sem falha de rede injetada.
+O efeito é uma escrita em `processing_log`, separada do marcador em `event_log`;
+a queda é provocada entre essas etapas. A carga é sintética e não estima taxas
+de falha em produção. Transação local, outbox e publicação externa não são avaliados.
+Os hashes dos resultados publicados estão em `RESULTS.sha256`.
 
 O campo `git_commit` em `results/exp-a-sensitivity-environment.txt` registra o HEAD
 de um repositório de desenvolvimento anterior, com alterações ainda não commitadas

@@ -94,6 +94,7 @@ func summarize(input, output string) error {
 	for _, key := range sortedKeys(dupGroups) {
 		dups := dupGroups[key]
 		losts := lostGroups[key]
+		// d* resume duplicações e l* perdas entre execuções; Std é o desvio-padrão amostral.
 		dMean, dStd, dMin, dMax := stats(dups)
 		lMean, lStd, lMin, lMax := stats(losts)
 		row := []string{

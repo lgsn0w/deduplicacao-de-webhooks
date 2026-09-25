@@ -12,7 +12,7 @@ type Event struct {
 	PaymentID   string    // which payment this event refers to
 	Status      Status    // the payment status this event carries
 	Payload     []byte    // raw event payload
-	PayloadHash string    // SHA256 of Payload, used for dedup
+	PayloadHash string    // SHA-256 de Payload; a deduplicação usa ID, não este hash
 	ReceivedAt  time.Time // when the harness received this event
 }
 

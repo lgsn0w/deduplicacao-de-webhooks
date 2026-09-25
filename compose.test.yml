@@ -1,0 +1,31 @@
+services:
+  postgres:
+    image: postgres:17.5-alpine
+    environment:
+      POSTGRES_USER: harness
+      POSTGRES_PASSWORD: test-only
+      POSTGRES_DB: harness_tests
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U harness -d harness_tests"]
+      interval: 1s
+      timeout: 5s
+      retries: 30
+
+  tests:
+    build:
+      context: .
+      target: build
+    command: ["go", "test", "-count=1", "-timeout=120s", "./..."]
+    environment:
+      TEST_DATABASE_URL: postgres://harness:test-only@postgres:5432/harness_tests?sslmode=disable
+      GOPROXY: "off"
+      GOTOOLCHAIN: local
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+networks:
+  default:
+    internal: true
